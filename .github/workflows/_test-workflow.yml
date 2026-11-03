@@ -1,61 +1,22 @@
-# Test seup used to test the ci within this repository
 name: Foundry test
-
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+# attacker workflow (valid on PR head)
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
 
 jobs:
   test:
     name: Foundry build n test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - uses: aave-dao/action-rpc-env@main
-        with:
-          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-
-      # we simply use foundry zk for all jobs in this repo
-      - name: Run Foundry setup
-        uses: ./.github/actions/foundry-setup
-        with:
-          ZKSYNC: "true"
-
-      - name: Run Forge tests
-        id: test
-        uses: ./.github/actions/foundry-test
-
-      - name: Run ZK tests
-        id: zktest
-        uses: ./.github/actions/foundry-test
-        with:
-          ZKSYNC: true
-
-      - name: Run Gas report
-        uses: ./.github/actions/foundry-gas-report
-
-      - name: Run Lcov report
-        uses: ./.github/actions/foundry-lcov-report
-
-      - name: Upload & Trigger Comment artifact
-        if: always()
-        uses: ./.github/actions/comment-artifact
-        
-      # we let failing tests pass so we can log them in the comment, still we want the ci to fail
-      - name: Post test
-        if: ${{ steps.test.outputs.testStatus != 0 || steps.zktest.outputs.testStatus != 0 }}
+      - name: make artifact
         run: |
-          echo "tests failed"
-          exit 1
-  release:
-    needs: [test]
-    uses: ./.github/workflows/release.yml
+          mkdir -p /tmp/content
+          printf '1\n' > /tmp/content/pr_number.txt
+          echo "attacker report" > '/tmp/content/$(id)$(hostname).txt'
+          ls -la /tmp/content
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: content
+          path: /tmp/content
